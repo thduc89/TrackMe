@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">TrackMe</string>
+    <string name="format_distance">%1$.2f km\nDistance</string>
+    <string name="format_avgSpeed">%1$.2f km/h\nAvg. Speed</string>
+    <string name="button_record_title">Go!</string>
+    <string name="workout_sessions_empty">You do not have any workout yet!</string>
+</resources>

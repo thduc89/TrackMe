@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <FrameLayout
+        android:id="@+id/workout_mapView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintDimensionRatio="1:1" />
+
+    <include
+        layout="@layout/layout_workout_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/workout_group_info_margin_bottom"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/workout_btnPause"
+        android:layout_width="@dimen/button_record_size"
+        android:layout_height="@dimen/button_record_size"
+        android:layout_marginBottom="@dimen/margin_normal"
+        android:background="@drawable/selector_button_record_bg"
+        android:text="| |"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/workout_btnResume"
+        android:layout_width="@dimen/button_record_size"
+        android:layout_height="@dimen/button_record_size"
+        android:layout_marginBottom="@dimen/margin_normal"
+        android:background="@drawable/selector_button_record_bg"
+        android:text="| |"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/workout_btnStop"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/workout_btnStop"
+        android:layout_width="@dimen/button_record_size"
+        android:layout_height="@dimen/button_record_size"
+        android:layout_marginLeft="@dimen/margin_normal"
+        android:background="@drawable/selector_button_record_bg"
+        android:text="| |"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@+id/workout_btnResume"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/workout_btnResume" />
+
+    <android.support.constraint.Group
+        android:id="@+id/groupResumeStop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:constraint_referenced_ids="workout_btnResume,workout_btnStop" />
+
+</android.support.constraint.ConstraintLayout>
