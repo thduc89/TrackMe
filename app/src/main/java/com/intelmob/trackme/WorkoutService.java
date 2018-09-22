@@ -1,5 +1,7 @@
+
 package com.intelmob.trackme;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.arch.lifecycle.LifecycleService;
@@ -7,14 +9,22 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.location.Location;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.model.LatLng;
 import com.intelmob.trackme.db.AppDatabase;
 import com.intelmob.trackme.db.WorkoutSession;
 import com.intelmob.trackme.ui.view.WorkoutActivity;
 
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Flowable;
@@ -28,6 +38,7 @@ public class WorkoutService extends LifecycleService {
     private static final String ACTION_PAUSE_RECORDING = "action_pause_recording";
     private static final String ACTION_RESUME_RECORDING = "action_resume_recording";
     private static final String ACTION_STOP_RECORDING = "action_stop_recording";
+    private static final String ACTION_START_LOCATION_UPDATE = "action_start_location_update";
 
     public static void startNewRecording(Context context) {
         Intent intent = new Intent(context, WorkoutService.class);
@@ -53,18 +64,78 @@ public class WorkoutService extends LifecycleService {
         context.startService(intent);
     }
 
+    public static void startLocationUpdates(Context context) {
+        Intent intent = new Intent(context, WorkoutService.class);
+        intent.setAction(ACTION_START_LOCATION_UPDATE);
+        context.startService(intent);
+    }
+
     private AppDatabase appDatabase;
+
+    private FusedLocationProviderClient mLocationProviderClient;
+    private LocationRequest mLocationRequest;
+    private LocationCallback mLocationCallback = new LocationCallback() {
+        @Override
+        public void onLocationResult(LocationResult locationResult) {
+            super.onLocationResult(locationResult);
+
+            if (locationResult == null) {
+                return;
+            }
+
+            Location location = locationResult.getLocations().get(0);
+            double currentLat = location.getLatitude();
+            double currentLon = location.getLongitude();
+            float speed = location.getSpeed();
+            float speedKPH = speed / 1000 * 3600;
+
+            getRecordingWorkoutSession()
+                    .map(workoutSession -> {
+                        if (workoutSession.travelRoutes == null) {
+                            workoutSession.travelRoutes = new ArrayList<>();
+                        }
+
+                        workoutSession.travelRoutes.add(new LatLng(currentLat, currentLon));
+                        int points = workoutSession.travelRoutes.size();
+
+                        workoutSession.avgSpeed = (workoutSession.avgSpeed + speedKPH) / points;
+                        if (points > 1) {
+                            LatLng lastPoint = workoutSession.travelRoutes.get(points - 2);
+                            float[] results = new float[3];
+                            Location.distanceBetween(currentLat, currentLon, lastPoint.latitude,
+                                    lastPoint.longitude, results);
+                            float distance = results[0];
+                            float distanceKM = distance / 1000;
+                            workoutSession.distance += distanceKM;
+                        }
+
+                        appDatabase.workoutModel().updateWorkoutSession(workoutSession);
+
+                        return true;
+                    }).subscribe(new SubscriberImpl<>());
+        }
+    };
 
     @Override
     public void onCreate() {
         super.onCreate();
         appDatabase = AppDatabase.getDatabase(this.getApplication());
+
+        mLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        if (mLocationRequest == null) {
+            mLocationRequest = new LocationRequest();
+            mLocationRequest.setSmallestDisplacement(10);
+            mLocationRequest.setInterval(10000);
+            mLocationRequest.setFastestInterval(5000);
+            mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+        }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         stopDurationCounter();
+        stopLocationUpdates();
     }
 
     @Override
@@ -87,6 +158,9 @@ public class WorkoutService extends LifecycleService {
                 case ACTION_STOP_RECORDING:
                     internalStopRecording();
                     break;
+                case ACTION_START_LOCATION_UPDATE:
+                    startLocationUpdates();
+                    break;
             }
         }
 
@@ -100,6 +174,7 @@ public class WorkoutService extends LifecycleService {
                     recordingSession.distance = 0;
                     recordingSession.avgSpeed = 0;
                     recordingSession.duration = 0;
+                    recordingSession.travelRoutes = null;
                     appDatabase.workoutModel().updateWorkoutSession(recordingSession);
 
                     return true;
@@ -114,11 +189,13 @@ public class WorkoutService extends LifecycleService {
     }
 
     private void internalPauseRecording() {
+        stopLocationUpdates();
         stopDurationCounter();
         stopForeground(true);
     }
 
     private void internalResumeRecording() {
+        startLocationUpdates();
         startDurationCounter();
         showNotification();
     }
@@ -137,6 +214,7 @@ public class WorkoutService extends LifecycleService {
                 .subscribe(new SubscriberImpl<Boolean>() {
                     @Override
                     public void onNext(Boolean success) {
+                        stopLocationUpdates();
                         stopForeground(true);
                         stopSelf();
                     }
@@ -147,14 +225,16 @@ public class WorkoutService extends LifecycleService {
         return Flowable.just(appDatabase)
                 .subscribeOn(Schedulers.io())
                 .map(db -> {
-                    WorkoutSession recordingSession = db.workoutModel().getRecordingWorkoutSessionSync();
+                    WorkoutSession recordingSession = db.workoutModel()
+                            .getRecordingWorkoutSessionSync();
                     if (recordingSession == null) {
                         recordingSession = new WorkoutSession();
                         recordingSession.dateCreated = System.currentTimeMillis();
                         recordingSession.isRecording = true;
                         appDatabase.workoutModel().addWorkoutSession(recordingSession);
 
-                        recordingSession = appDatabase.workoutModel().getRecordingWorkoutSessionSync();
+                        recordingSession = appDatabase.workoutModel()
+                                .getRecordingWorkoutSessionSync();
                     }
                     return recordingSession;
                 });
@@ -201,6 +281,18 @@ public class WorkoutService extends LifecycleService {
                 .setOngoing(true)
                 .build();
         startForeground(12345, notification);
+    }
+
+    @SuppressLint("MissingPermission")
+    private void startLocationUpdates() {
+        mLocationProviderClient.requestLocationUpdates(mLocationRequest,
+                mLocationCallback,
+                null /* Looper */);
+    }
+
+    private void stopLocationUpdates() {
+        if (mLocationProviderClient != null)
+            mLocationProviderClient.removeLocationUpdates(mLocationCallback);
     }
 
     @Nullable

@@ -3,28 +3,29 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:padding="@dimen/margin_small">
 
     <TextView
         android:id="@+id/workout_info_tvDistance"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="@string/format_distance"
         app:layout_constraintEnd_toStartOf="@+id/workout_info_tvAvgSpeed"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintHorizontal_chainStyle="spread"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        tools:text="@string/format_distance" />
 
     <TextView
         android:id="@+id/workout_info_tvAvgSpeed"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/format_avgSpeed"
         app:layout_constraintEnd_toStartOf="@+id/workout_info_tvDuration"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/workout_info_tvDistance"
-        app:layout_constraintTop_toTopOf="@+id/workout_info_tvDistance" />
+        app:layout_constraintTop_toTopOf="@+id/workout_info_tvDistance"
+        tools:text="@string/format_avgSpeed" />
 
     <TextView
         android:id="@+id/workout_info_tvDuration"
