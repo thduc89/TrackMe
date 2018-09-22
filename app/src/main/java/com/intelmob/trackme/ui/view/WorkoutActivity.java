@@ -1,4 +1,4 @@
-package com.intelmob.trackme;
+package com.intelmob.trackme.ui.view;
 
 import android.arch.lifecycle.ViewModelProviders;
 import android.os.Bundle;
@@ -9,8 +9,10 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.intelmob.trackme.R;
+import com.intelmob.trackme.WorkoutService;
 import com.intelmob.trackme.util.Utils;
-import com.intelmob.trackme.viewmodel.WorkoutSessionViewModel;
+import com.intelmob.trackme.ui.viewmodel.WorkoutSessionViewModel;
 
 public class WorkoutActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -44,7 +46,7 @@ public class WorkoutActivity extends AppCompatActivity implements View.OnClickLi
         btnStop.setOnClickListener(this);
 
         viewModel = ViewModelProviders.of(this).get(WorkoutSessionViewModel.class);
-        viewModel.getWorkoutSession().observe(this, session -> {
+        viewModel.getRecordingWorkoutSession().observe(this, session -> {
             if (session == null) {
                 return;
             }
@@ -53,7 +55,8 @@ public class WorkoutActivity extends AppCompatActivity implements View.OnClickLi
             tvAvgSpeed.setText(String.format(getString(R.string.format_avgSpeed), session.avgSpeed));
             tvDuration.setText(Utils.formatDuration(session.duration));
         });
-        viewModel.startDurationCounter();
+
+        WorkoutService.startNewRecording(this);
     }
 
     @Override
@@ -68,15 +71,15 @@ public class WorkoutActivity extends AppCompatActivity implements View.OnClickLi
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.workout_btnPause:
-                viewModel.stopDurationCounter();
+                WorkoutService.pauseRecording(this);
                 toggleGroupResumeStop(true);
                 break;
             case R.id.workout_btnResume:
-                viewModel.startDurationCounter();
+                WorkoutService.resumeRecording(this);
                 toggleGroupResumeStop(false);
                 break;
             case R.id.workout_btnStop:
-                viewModel.stopDurationCounter();
+                WorkoutService.stopRecording(this);
                 finish();
                 break;
         }

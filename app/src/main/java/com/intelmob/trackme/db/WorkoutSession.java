@@ -9,8 +9,12 @@ public class WorkoutSession {
     @PrimaryKey(autoGenerate = true)
     public int id;
 
+    public long dateCreated;
+
     public String imagePath;
     public float distance;
     public float avgSpeed;
     public int duration;
+
+    public boolean isRecording = false;
 }

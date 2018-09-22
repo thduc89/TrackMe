@@ -1,15 +1,17 @@
-package com.intelmob.trackme;
+package com.intelmob.trackme.ui.view;
 
 import android.arch.lifecycle.ViewModelProviders;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
+import com.intelmob.trackme.NavigationController;
+import com.intelmob.trackme.R;
 import com.intelmob.trackme.adapter.WorkoutSessionAdapter;
-import com.intelmob.trackme.viewmodel.WorkoutSessionListViewModel;
+import com.intelmob.trackme.ui.viewmodel.WorkoutSessionListViewModel;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -18,6 +20,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private WorkoutSessionListViewModel viewModel;
 
     private Button btnRecord;
+    private TextView tvEmpty;
 
 
     @Override
@@ -27,15 +30,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         rvList = findViewById(R.id.main_rvList);
         btnRecord = findViewById(R.id.main_btnRecord);
+        tvEmpty = findViewById(R.id.main_tvEmpty);
 
         mAdapter = new WorkoutSessionAdapter();
         rvList.setAdapter(mAdapter);
-        rvList.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
 
         btnRecord.setOnClickListener(this);
 
         viewModel = ViewModelProviders.of(this).get(WorkoutSessionListViewModel.class);
-        viewModel.getWorkoutSessionList().observe(this, workoutSessions -> mAdapter.addItems(workoutSessions));
+        viewModel.getWorkoutSessionList().observe(this, workoutSessions -> {
+            tvEmpty.setVisibility(workoutSessions == null || workoutSessions.size() == 0 ? View.VISIBLE : View.GONE);
+            mAdapter.setItems(workoutSessions);
+        });
     }
 
     @Override

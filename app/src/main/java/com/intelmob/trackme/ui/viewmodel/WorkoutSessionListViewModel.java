@@ -1,4 +1,4 @@
-package com.intelmob.trackme.viewmodel;
+package com.intelmob.trackme.ui.viewmodel;
 
 import android.app.Application;
 import android.arch.lifecycle.AndroidViewModel;

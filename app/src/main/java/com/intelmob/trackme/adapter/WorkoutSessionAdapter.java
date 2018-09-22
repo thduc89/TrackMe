@@ -41,9 +41,9 @@ public class WorkoutSessionAdapter extends RecyclerView.Adapter<ItemWorkoutSessi
         return items.size();
     }
 
-    public void addItems(List<WorkoutSession> items) {
-        int lastSize = this.items.size();
+    public void setItems(List<WorkoutSession> items) {
+        this.items.clear();
         this.items.addAll(items);
-        notifyItemRangeInserted(lastSize, items.size());
+        notifyDataSetChanged();
     }
 }

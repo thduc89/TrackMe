@@ -2,6 +2,7 @@
 <resources>
     <dimen name="button_record_size">40dp</dimen>
     <dimen name="button_record_corners_radius">20dp</dimen>
+    <dimen name="margin_small">8dp</dimen>
     <dimen name="margin_normal">16dp</dimen>
     <dimen name="workout_group_info_margin_bottom">72dp</dimen>
 </resources>

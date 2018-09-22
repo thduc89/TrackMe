@@ -10,7 +10,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.view.MainActivity"
             android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -20,8 +20,11 @@
         </activity>
 
         <activity
-            android:name=".WorkoutActivity"
-            android:launchMode="singleTop" />
+            android:name=".ui.view.WorkoutActivity"
+            android:launchMode="singleTop"
+            android:parentActivityName=".ui.view.MainActivity" />
+
+        <service android:name=".WorkoutService" />
     </application>
 
 </manifest>
