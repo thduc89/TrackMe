@@ -5,11 +5,9 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -36,12 +34,12 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.maps.model.RoundCap;
-import com.google.gson.Gson;
 import com.intelmob.trackme.R;
 import com.intelmob.trackme.SubscriberImpl;
 import com.intelmob.trackme.WorkoutService;
 import com.intelmob.trackme.db.TravelPoint;
 import com.intelmob.trackme.db.WorkoutSession;
+import com.intelmob.trackme.ui.AlertUtils;
 import com.intelmob.trackme.ui.viewmodel.WorkoutSessionViewModel;
 import com.intelmob.trackme.util.Utils;
 
@@ -49,7 +47,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 import io.reactivex.Flowable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -176,21 +173,7 @@ public class WorkoutActivity extends AppCompatActivity
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.workout_btnBack:
-                btnPause.performClick();
-
-                AlertDialog confirmDialog = new AlertDialog.Builder(this)
-                        .setTitle(R.string.notice)
-                        .setMessage(R.string.stop_workout_prompt)
-                        .setNegativeButton(R.string.stop, (dialog, which) -> btnStop.performClick())
-                        .setPositiveButton(R.string.continue_workout,
-                                (dialog, which) -> btnResume.performClick())
-                        .create();
-
-                confirmDialog.setOnShowListener(
-                        dialog -> ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_NEGATIVE)
-                                .setTextColor(getResources().getColor(R.color.gray)));
-
-                confirmDialog.show();
+                onBackPressed();
                 break;
             case R.id.workout_btnPause:
                 WorkoutService.pauseRecording(this);
@@ -201,6 +184,8 @@ public class WorkoutActivity extends AppCompatActivity
                 toggleGroupResumeStop(false);
                 break;
             case R.id.workout_btnStop:
+                btnPause.performClick();
+
                 Flowable.just(1)
                         .subscribeOn(Schedulers.io())
                         .map(integer -> mViewModel.getRecordingWorkoutSessionSync())
@@ -212,22 +197,36 @@ public class WorkoutActivity extends AppCompatActivity
                             @Override
                             public void onNext(WorkoutSession workoutSession) {
                                 if (workoutSession.travelPoints.size() > 1) {
-                                    moveCameraToBounds(workoutSession.travelPoints, false,
-                                            new GoogleMap.CancelableCallback() {
-                                                @Override
-                                                public void onFinish() {
-                                                    takeMapSnapshotAndStopRecording();
-                                                }
+                                    AlertUtils.showConfirmDialog(WorkoutActivity.this,
+                                            getString(R.string.notice),
+                                            getString(R.string.stop_workout_prompt),
+                                            getString(R.string.continue_workout), null,
+                                            getString(R.string.stop),
+                                            (dialog, which) -> moveCameraToBounds(
+                                                    workoutSession.travelPoints,
+                                                    false,
+                                                    new GoogleMap.CancelableCallback() {
+                                                        @Override
+                                                        public void onFinish() {
+                                                            takeMapSnapshotAndStopRecording();
+                                                        }
 
-                                                @Override
-                                                public void onCancel() {
+                                                        @Override
+                                                        public void onCancel() {
 
-                                                }
-                                            });
-
+                                                        }
+                                                    }));
                                 } else {
-                                    WorkoutService.stopRecording(WorkoutActivity.this, false);
-                                    finish();
+                                    AlertUtils.showConfirmDialog(WorkoutActivity.this,
+                                            getString(R.string.notice),
+                                            getString(R.string.cancel_workout_prompt),
+                                            getString(R.string.continue_workout), null,
+                                            getString(R.string.stop),
+                                            (dialog, which) -> {
+                                                WorkoutService.stopRecording(WorkoutActivity.this,
+                                                        false);
+                                                finish();
+                                            });
                                 }
                             }
                         });
@@ -427,6 +426,6 @@ public class WorkoutActivity extends AppCompatActivity
 
     @Override
     public void onBackPressed() {
-        btnBack.performClick();
+        btnStop.performClick();
     }
 }

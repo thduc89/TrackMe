@@ -20,7 +20,6 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.gson.Gson;
 import com.intelmob.trackme.db.AppDatabase;
 import com.intelmob.trackme.db.TravelPoint;
 import com.intelmob.trackme.db.WorkoutSession;
@@ -158,7 +157,6 @@ public class WorkoutService extends LifecycleService {
                 case ACTION_STOP_RECORDING:
                     boolean saveProgress = intent.getBooleanExtra(EXTRA_SAVE_PROGRESS, false);
                     internalStopRecording(saveProgress);
-                    break;
                     break;
             }
         }
