@@ -1,4 +1,7 @@
+
 package com.intelmob.trackme.util;
+
+import android.content.res.Resources;
 
 import org.joda.time.Duration;
 import org.joda.time.format.PeriodFormatterBuilder;
@@ -19,5 +22,9 @@ public class Utils {
                 .minimumPrintedDigits(2)
                 .appendSeconds()
                 .toFormatter().print(duration.toPeriod());
+    }
+
+    public static int getScreenWidth() {
+        return Resources.getSystem().getDisplayMetrics().widthPixels;
     }
 }

@@ -1,15 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white">
 
-    <FrameLayout
+    <fragment
         android:id="@+id/workout_mapView"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintDimensionRatio="1:1" />
+        app:layout_constraintDimensionRatio="1:1"
+        tools:context=".ui.view.WorkoutActivity" />
+
+    <ImageButton
+        android:id="@+id/workout_btnBack"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@null"
+        android:padding="@dimen/margin_normal"
+        android:src="@drawable/ic_arrow_back"
+        android:tint="@color/black" />
 
     <include
         layout="@layout/layout_workout_info"
@@ -20,47 +32,55 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <Button
+    <ImageButton
         android:id="@+id/workout_btnPause"
         android:layout_width="@dimen/button_record_size"
         android:layout_height="@dimen/button_record_size"
         android:layout_marginBottom="@dimen/margin_normal"
-        android:background="@drawable/selector_button_record_bg"
-        android:text="| |"
+        android:background="@null"
+        android:src="@drawable/ic_pause"
         android:textColor="@color/white"
         android:textStyle="bold"
+        android:tint="@color/black"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <Button
+    <ImageButton
         android:id="@+id/workout_btnResume"
         android:layout_width="@dimen/button_record_size"
         android:layout_height="@dimen/button_record_size"
         android:layout_marginBottom="@dimen/margin_normal"
-        android:background="@drawable/selector_button_record_bg"
-        android:text="| |"
+        android:background="@null"
+        android:src="@drawable/ic_refresh"
         android:textColor="@color/white"
         android:textStyle="bold"
+        android:tint="@color/black"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/workout_btnStop"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <Button
+    <ImageButton
         android:id="@+id/workout_btnStop"
         android:layout_width="@dimen/button_record_size"
         android:layout_height="@dimen/button_record_size"
         android:layout_marginLeft="@dimen/margin_normal"
-        android:background="@drawable/selector_button_record_bg"
-        android:text="| |"
+        android:background="@null"
+        android:src="@drawable/ic_stop"
         android:textColor="@color/white"
         android:textStyle="bold"
+        android:tint="@color/black"
         app:layout_constraintBottom_toBottomOf="@+id/workout_btnResume"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/workout_btnResume" />
+
+    <include
+        android:id="@+id/loadingView"
+        layout="@layout/layout_loading_fullscreen"
+        android:visibility="gone" />
 
     <android.support.constraint.Group
         android:id="@+id/groupResumeStop"

@@ -3,6 +3,10 @@
     android:shape="rectangle">
 
     <corners android:radius="@dimen/button_record_corners_radius" />
-    <solid android:color="@color/red" />
+    <gradient
+        android:angle="90"
+        android:centerColor="@color/red"
+        android:endColor="@color/red"
+        android:startColor="@color/red_dk_active" />
 
 </shape>

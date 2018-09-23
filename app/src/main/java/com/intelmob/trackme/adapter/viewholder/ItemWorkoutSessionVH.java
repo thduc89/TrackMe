@@ -19,7 +19,7 @@ public class ItemWorkoutSessionVH extends RecyclerView.ViewHolder {
 
         ivMap = itemView.findViewById(R.id.item_workout_session_ivMap);
         tvDistance = itemView.findViewById(R.id.workout_info_tvDistance);
-        tvAvgSpeed = itemView.findViewById(R.id.workout_info_tvAvgSpeed);
+        tvAvgSpeed = itemView.findViewById(R.id.workout_info_tvSpeed);
         tvDuration = itemView.findViewById(R.id.workout_info_tvDuration);
     }
 }
