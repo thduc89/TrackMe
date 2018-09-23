@@ -20,7 +20,9 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.gson.Gson;
 import com.intelmob.trackme.db.AppDatabase;
+import com.intelmob.trackme.db.TravelPoint;
 import com.intelmob.trackme.db.WorkoutSession;
 import com.intelmob.trackme.ui.view.WorkoutActivity;
 
@@ -38,7 +40,7 @@ public class WorkoutService extends LifecycleService {
     private static final String ACTION_PAUSE_RECORDING = "action_pause_recording";
     private static final String ACTION_RESUME_RECORDING = "action_resume_recording";
     private static final String ACTION_STOP_RECORDING = "action_stop_recording";
-    private static final String ACTION_START_LOCATION_UPDATE = "action_start_location_update";
+    private static final String EXTRA_SAVE_PROGRESS = "extra_save_progress";
 
     public static void startNewRecording(Context context) {
         Intent intent = new Intent(context, WorkoutService.class);
@@ -58,15 +60,10 @@ public class WorkoutService extends LifecycleService {
         context.startService(intent);
     }
 
-    public static void stopRecording(Context context) {
+    public static void stopRecording(Context context, boolean saveProgress) {
         Intent intent = new Intent(context, WorkoutService.class);
         intent.setAction(ACTION_STOP_RECORDING);
-        context.startService(intent);
-    }
-
-    public static void startLocationUpdates(Context context) {
-        Intent intent = new Intent(context, WorkoutService.class);
-        intent.setAction(ACTION_START_LOCATION_UPDATE);
+        intent.putExtra(EXTRA_SAVE_PROGRESS, saveProgress);
         context.startService(intent);
     }
 
@@ -91,20 +88,21 @@ public class WorkoutService extends LifecycleService {
 
             getRecordingWorkoutSession()
                     .map(workoutSession -> {
-                        if (workoutSession.travelRoutes == null) {
-                            workoutSession.travelRoutes = new ArrayList<>();
+                        if (workoutSession.travelPoints == null) {
+                            workoutSession.travelPoints = new ArrayList<>();
                         }
 
-                        workoutSession.travelRoutes.add(new LatLng(currentLat, currentLon));
-                        int points = workoutSession.travelRoutes.size();
+                        workoutSession.travelPoints
+                                .add(new TravelPoint(new LatLng(currentLat, currentLon), speedKPH));
+                        int points = workoutSession.travelPoints.size();
 
                         workoutSession.speedKPH = speedKPH;
-                        workoutSession.avgSpeed = (workoutSession.avgSpeed + speedKPH) / points;
                         if (points > 1) {
-                            LatLng lastPoint = workoutSession.travelRoutes.get(points - 2);
+                            TravelPoint lastPoint = workoutSession.travelPoints.get(points - 2);
                             float[] results = new float[3];
-                            Location.distanceBetween(currentLat, currentLon, lastPoint.latitude,
-                                    lastPoint.longitude, results);
+                            Location.distanceBetween(currentLat, currentLon,
+                                    lastPoint.latLng.latitude, lastPoint.latLng.longitude,
+                                    results);
                             float distance = results[0];
                             float distanceKM = distance / 1000;
                             workoutSession.distance += distanceKM;
@@ -135,6 +133,7 @@ public class WorkoutService extends LifecycleService {
     @Override
     public void onDestroy() {
         super.onDestroy();
+
         stopDurationCounter();
         stopLocationUpdates();
     }
@@ -157,10 +156,9 @@ public class WorkoutService extends LifecycleService {
                     internalResumeRecording();
                     break;
                 case ACTION_STOP_RECORDING:
-                    internalStopRecording();
+                    boolean saveProgress = intent.getBooleanExtra(EXTRA_SAVE_PROGRESS, false);
+                    internalStopRecording(saveProgress);
                     break;
-                case ACTION_START_LOCATION_UPDATE:
-                    startLocationUpdates();
                     break;
             }
         }
@@ -175,7 +173,7 @@ public class WorkoutService extends LifecycleService {
                     recordingSession.distance = 0;
                     recordingSession.avgSpeed = 0;
                     recordingSession.duration = 0;
-                    recordingSession.travelRoutes = null;
+                    recordingSession.travelPoints = null;
                     appDatabase.workoutModel().updateWorkoutSession(recordingSession);
 
                     return true;
@@ -201,13 +199,31 @@ public class WorkoutService extends LifecycleService {
         showNotification();
     }
 
-    private void internalStopRecording() {
+    private void internalStopRecording(boolean saveProgress) {
         stopDurationCounter();
 
         getRecordingWorkoutSession()
                 .map(recordingSession -> {
-                    recordingSession.isRecording = false;
-                    appDatabase.workoutModel().updateWorkoutSession(recordingSession);
+                    if (saveProgress) {
+                        recordingSession.isRecording = false;
+                        if (recordingSession.travelPoints != null
+                                && recordingSession.travelPoints.size() > 0) {
+
+                            int count = 0;
+                            float speed = 0;
+                            for (TravelPoint point : recordingSession.travelPoints) {
+                                if (point.speedKPH > 0) {
+                                    count++;
+                                    speed += point.speedKPH;
+                                }
+                            }
+                            if (count > 0)
+                                recordingSession.avgSpeed = speed / count;
+                        }
+                        appDatabase.workoutModel().updateWorkoutSession(recordingSession);
+                    } else {
+                        appDatabase.workoutModel().deleteWorkoutSession(recordingSession);
+                    }
 
                     return true;
                 })
