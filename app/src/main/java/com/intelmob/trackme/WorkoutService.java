@@ -98,6 +98,7 @@ public class WorkoutService extends LifecycleService {
                         workoutSession.travelRoutes.add(new LatLng(currentLat, currentLon));
                         int points = workoutSession.travelRoutes.size();
 
+                        workoutSession.speedKPH = speedKPH;
                         workoutSession.avgSpeed = (workoutSession.avgSpeed + speedKPH) / points;
                         if (points > 1) {
                             LatLng lastPoint = workoutSession.travelRoutes.get(points - 2);

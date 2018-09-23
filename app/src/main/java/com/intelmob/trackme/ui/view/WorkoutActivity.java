@@ -4,9 +4,14 @@ package com.intelmob.trackme.ui.view;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.arch.lifecycle.ViewModelProviders;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.constraint.Group;
@@ -55,13 +60,14 @@ public class WorkoutActivity extends AppCompatActivity
     private static final int DEFAULT_LINE_WIDTH = 12;
     private static final int DEFAULT_BOUNDS_PADDING = 50;
 
+    private ImageButton btnBack;
     private ImageButton btnPause;
     private ImageButton btnResume;
     private ImageButton btnStop;
     private Group groupResumeStop;
 
     private TextView tvDistance;
-    private TextView tvAvgSpeed;
+    private TextView tvSpeed;
     private TextView tvDuration;
 
     private View loadingView;
@@ -83,17 +89,19 @@ public class WorkoutActivity extends AppCompatActivity
                 .findFragmentById(R.id.workout_mapView);
         mapFragment.getMapAsync(this);
 
+        btnBack = findViewById(R.id.workout_btnBack);
         btnPause = findViewById(R.id.workout_btnPause);
         btnResume = findViewById(R.id.workout_btnResume);
         btnStop = findViewById(R.id.workout_btnStop);
         groupResumeStop = findViewById(R.id.groupResumeStop);
 
         tvDistance = findViewById(R.id.workout_info_tvDistance);
-        tvAvgSpeed = findViewById(R.id.workout_info_tvAvgSpeed);
+        tvSpeed = findViewById(R.id.workout_info_tvSpeed);
         tvDuration = findViewById(R.id.workout_info_tvDuration);
 
         loadingView = findViewById(R.id.loadingView);
 
+        btnBack.setOnClickListener(this);
         btnPause.setOnClickListener(this);
         btnResume.setOnClickListener(this);
         btnStop.setOnClickListener(this);
@@ -109,45 +117,50 @@ public class WorkoutActivity extends AppCompatActivity
 
             tvDistance.setText(String.format(
                     getString(R.string.format_distance), session.distance));
-            tvAvgSpeed.setText(String.format(
-                    getString(R.string.format_avgSpeed), session.avgSpeed));
+            tvSpeed.setText(String.format(getString(R.string.format_speed), session.speedKPH));
             tvDuration.setText(Utils.formatDuration(session.duration));
 
-            if (session.travelRoutes != null && session.travelRoutes.size() > 0) {
-                if (mTravelRoutes == null) {
-                    mTravelRoutes = new ArrayList<>();
-                    mTravelRoutes.addAll(session.travelRoutes);
+            if (session.travelRoutes == null || session.travelRoutes.size() == 0) {
+                return;
+            }
+
+            if (mTravelRoutes == null) {
+                mTravelRoutes = new ArrayList<>();
+                mTravelRoutes.addAll(session.travelRoutes);
+            }
+
+            if (!startMarkerAdded) {
+                startMarkerAdded = true;
+
+                LatLng firstPoint = mTravelRoutes.get(0);
+                addMarker(firstPoint.latitude, firstPoint.longitude);
+                moveCameraTo(firstPoint.latitude, firstPoint.longitude, DEFAULT_ZOOM_LEVEL,
+                        true, null);
+            }
+
+            if (mTravelRoutes.size() < session.travelRoutes.size()) {
+                int fromIndex = mTravelRoutes.size();
+                int toIndex = session.travelRoutes.size();
+
+                mTravelRoutes.addAll(session.travelRoutes.subList(fromIndex, toIndex));
+
+                for (int i = fromIndex; i < toIndex - 1; i++) {
+                    LatLng startPoint = mTravelRoutes.get(i);
+                    LatLng endPoint = mTravelRoutes.get(i + 1);
+                    drawRoute(startPoint.latitude, startPoint.longitude, endPoint.latitude,
+                            endPoint.longitude);
                 }
 
-                if (!startMarkerAdded) {
-                    startMarkerAdded = true;
-
-                    LatLng firstPoint = mTravelRoutes.get(0);
-                    addMarker(firstPoint.latitude, firstPoint.longitude);
-                    moveCameraTo(firstPoint.latitude, firstPoint.longitude, DEFAULT_ZOOM_LEVEL,
-                            true, null);
-                }
-
-                if (mTravelRoutes.size() < session.travelRoutes.size()) {
-                    int fromIndex = mTravelRoutes.size();
-                    int toIndex = session.travelRoutes.size();
-
-                    mTravelRoutes.addAll(session.travelRoutes.subList(fromIndex, toIndex));
-
-                    for (int i = fromIndex; i < toIndex - 1; i++) {
-                        LatLng startPoint = mTravelRoutes.get(i);
-                        LatLng endPoint = mTravelRoutes.get(i + 1);
-                        drawRoute(startPoint.latitude, startPoint.longitude, endPoint.latitude,
-                                endPoint.longitude);
-                    }
-
-                    if (toIndex - fromIndex == 1) {
-                        moveCameraToBounds(mTravelRoutes.subList(fromIndex, toIndex), true, null);
-                    }
+                if (toIndex - fromIndex == 1) {
+                    moveCameraToBounds(mTravelRoutes.subList(fromIndex, toIndex), true, null);
                 }
             }
         });
+    }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
         checkAndRequestLocationPermissionIfNeed();
     }
 
@@ -163,6 +176,23 @@ public class WorkoutActivity extends AppCompatActivity
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
+            case R.id.workout_btnBack:
+                btnPause.performClick();
+
+                AlertDialog confirmDialog = new AlertDialog.Builder(this)
+                        .setTitle(R.string.notice)
+                        .setMessage(R.string.stop_workout_prompt)
+                        .setNegativeButton(R.string.stop, (dialog, which) -> btnStop.performClick())
+                        .setPositiveButton(R.string.continue_workout,
+                                (dialog, which) -> btnResume.performClick())
+                        .create();
+
+                confirmDialog.setOnShowListener(
+                        dialog -> ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_NEGATIVE)
+                                .setTextColor(getResources().getColor(R.color.gray)));
+
+                confirmDialog.show();
+                break;
             case R.id.workout_btnPause:
                 WorkoutService.pauseRecording(this);
                 toggleGroupResumeStop(true);
@@ -330,7 +360,11 @@ public class WorkoutActivity extends AppCompatActivity
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 onLocationPermissionGranted();
             } else {
-                showLocationPermissionDescriptionDialog();
+                if (shouldShowRequestLocationPermissionRationale()) {
+                    showLocationPermissionDescriptionDialog();
+                } else {
+                    showLocationPermissionSettingDialog();
+                }
             }
         }
     }
@@ -348,10 +382,14 @@ public class WorkoutActivity extends AppCompatActivity
                 LOCATION_RC);
     }
 
+    private boolean shouldShowRequestLocationPermissionRationale() {
+        return ActivityCompat.shouldShowRequestPermissionRationale(this,
+                Manifest.permission.ACCESS_FINE_LOCATION);
+    }
+
     private void checkAndRequestLocationPermissionIfNeed() {
         if (!isLocationPermissionGranted()) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.ACCESS_FINE_LOCATION)) {
+            if (shouldShowRequestLocationPermissionRationale()) {
                 showLocationPermissionDescriptionDialog();
             } else {
                 askForLocationPermission();
@@ -368,5 +406,30 @@ public class WorkoutActivity extends AppCompatActivity
                 .setPositiveButton(R.string.ok,
                         (dialog, which) -> askForLocationPermission())
                 .show();
+    }
+
+    private void showLocationPermissionSettingDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.notice)
+                .setMessage(R.string.location_permission_description)
+                .setPositiveButton(R.string.ok,
+                        (dialog, which) -> openSettingScreen(WorkoutActivity.this))
+                .show();
+    }
+
+    private void openSettingScreen(Context context) {
+        Intent i = new Intent();
+        i.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        i.addCategory(Intent.CATEGORY_DEFAULT);
+        i.setData(Uri.parse("package:" + context.getPackageName()));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        i.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+        i.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+        context.startActivity(i);
+    }
+
+    @Override
+    public void onBackPressed() {
+        btnBack.performClick();
     }
 }

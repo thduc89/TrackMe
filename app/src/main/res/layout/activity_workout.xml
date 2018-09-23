@@ -14,6 +14,15 @@
         app:layout_constraintDimensionRatio="1:1"
         tools:context=".ui.view.WorkoutActivity" />
 
+    <ImageButton
+        android:id="@+id/workout_btnBack"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@null"
+        android:padding="@dimen/margin_normal"
+        android:src="@drawable/ic_arrow_back"
+        android:tint="@color/black" />
+
     <include
         layout="@layout/layout_workout_info"
         android:layout_width="match_parent"

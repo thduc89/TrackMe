@@ -25,4 +25,5 @@ public class WorkoutSession {
 
     /** Current workout session or not */
     public boolean isRecording = false;
+    public float speedKPH;
 }

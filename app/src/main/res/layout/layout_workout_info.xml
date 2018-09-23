@@ -11,16 +11,18 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        app:layout_constraintEnd_toStartOf="@+id/workout_info_tvAvgSpeed"
+        android:gravity="center"
+        app:layout_constraintEnd_toStartOf="@+id/workout_info_tvSpeed"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintHorizontal_chainStyle="spread"
         app:layout_constraintStart_toStartOf="parent"
         tools:text="@string/format_distance" />
 
     <TextView
-        android:id="@+id/workout_info_tvAvgSpeed"
+        android:id="@+id/workout_info_tvSpeed"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:gravity="center"
         app:layout_constraintEnd_toStartOf="@+id/workout_info_tvDuration"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/workout_info_tvDistance"
@@ -31,10 +33,11 @@
         android:id="@+id/workout_info_tvDuration"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:gravity="center"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/workout_info_tvAvgSpeed"
+        app:layout_constraintStart_toEndOf="@+id/workout_info_tvSpeed"
         app:layout_constraintTop_toTopOf="@+id/workout_info_tvDistance"
         tools:text="01:00:00" />
 

@@ -12,4 +12,5 @@
     <color name="red_dk">#CA0525</color>
     <color name="red_dk_active">#a6051f</color>
     <color name="trans_black">#88000000</color>
+    <color name="gray">#a1a1a1</color>
 </resources>

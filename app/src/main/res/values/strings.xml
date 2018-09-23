@@ -2,10 +2,14 @@
     <string name="app_name">TrackMe</string>
     <string name="format_distance">%1$.2f km\nDistance</string>
     <string name="format_avgSpeed">%1$.2f km/h\nAvg. Speed</string>
+    <string name="format_speed">%1$.2f km/h\nSpeed</string>
     <string name="button_record_title">Go!</string>
     <string name="workout_sessions_empty">You do not have any workout yet!</string>
     <string name="notice">Notice</string>
     <string name="location_permission_description">We use location service to track your workout progress. Please allow the permission in the next step.</string>
     <string name="ok">OK</string>
     <string name="take_snapshot_fail">Fail to take map snapshot</string>
+    <string name="stop_workout_prompt">Do you want to stop now?</string>
+    <string name="stop">Stop</string>
+    <string name="continue_workout">Continue</string>
 </resources>
