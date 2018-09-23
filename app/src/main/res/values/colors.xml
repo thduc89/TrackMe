@@ -2,10 +2,14 @@
 <resources>
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
-    <color name="colorAccent">#FF4081</color>
+    <color name="colorAccent">#ae041f</color>
 
+    <color name="transparent">#00000000</color>
     <color name="white">#ffffff</color>
-    <color name="red">#e74c3c</color>
-    <color name="red_dk">#c0392b</color>
+    <color name="trans_white">#11ffffff</color>
+    <color name="black">#000000</color>
+    <color name="red">#e10629</color>
+    <color name="red_dk">#CA0525</color>
+    <color name="red_dk_active">#a6051f</color>
     <color name="trans_black">#88000000</color>
 </resources>

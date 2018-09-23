@@ -23,43 +23,46 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <Button
+    <ImageButton
         android:id="@+id/workout_btnPause"
         android:layout_width="@dimen/button_record_size"
         android:layout_height="@dimen/button_record_size"
         android:layout_marginBottom="@dimen/margin_normal"
-        android:background="@drawable/selector_button_record_bg"
-        android:text="| |"
+        android:background="@null"
+        android:src="@drawable/ic_pause"
         android:textColor="@color/white"
         android:textStyle="bold"
+        android:tint="@color/black"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <Button
+    <ImageButton
         android:id="@+id/workout_btnResume"
         android:layout_width="@dimen/button_record_size"
         android:layout_height="@dimen/button_record_size"
         android:layout_marginBottom="@dimen/margin_normal"
-        android:background="@drawable/selector_button_record_bg"
-        android:text="| |"
+        android:background="@null"
+        android:src="@drawable/ic_refresh"
         android:textColor="@color/white"
         android:textStyle="bold"
+        android:tint="@color/black"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/workout_btnStop"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <Button
+    <ImageButton
         android:id="@+id/workout_btnStop"
         android:layout_width="@dimen/button_record_size"
         android:layout_height="@dimen/button_record_size"
         android:layout_marginLeft="@dimen/margin_normal"
-        android:background="@drawable/selector_button_record_bg"
-        android:text="| |"
+        android:background="@null"
+        android:src="@drawable/ic_stop"
         android:textColor="@color/white"
         android:textStyle="bold"
+        android:tint="@color/black"
         app:layout_constraintBottom_toBottomOf="@+id/workout_btnResume"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"

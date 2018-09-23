@@ -5,4 +5,5 @@
     <dimen name="margin_small">8dp</dimen>
     <dimen name="margin_normal">16dp</dimen>
     <dimen name="workout_group_info_margin_bottom">72dp</dimen>
+    <dimen name="gradient_height">40dp</dimen>
 </resources>

@@ -11,8 +11,9 @@
         android:id="@+id/main_rvList"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginBottom="@dimen/margin_normal"
+        android:clipToPadding="false"
         android:orientation="vertical"
+        android:paddingBottom="@dimen/gradient_height"
         app:layoutManager="android.support.v7.widget.LinearLayoutManager"
         app:layout_constraintBottom_toTopOf="@+id/main_btnRecord"
         app:layout_constraintEnd_toEndOf="parent"
@@ -30,6 +31,14 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/gradient_height"
+        android:background="@drawable/shape_gradient_white_bottom_to_top"
+        app:layout_constraintBottom_toTopOf="@+id/main_btnRecord"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/main_btnRecord"

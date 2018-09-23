@@ -24,4 +24,8 @@ public class WorkoutSessionViewModel extends AndroidViewModel {
         return recordingWorkoutSession;
     }
 
+    public WorkoutSession getRecordingWorkoutSessionSync(){
+        return appDatabase.workoutModel().getRecordingWorkoutSessionSync();
+    }
+
 }

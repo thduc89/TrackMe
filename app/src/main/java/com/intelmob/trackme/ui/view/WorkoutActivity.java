@@ -16,10 +16,11 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -31,12 +32,20 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.maps.model.RoundCap;
 import com.intelmob.trackme.R;
+import com.intelmob.trackme.SubscriberImpl;
 import com.intelmob.trackme.WorkoutService;
+import com.intelmob.trackme.db.WorkoutSession;
 import com.intelmob.trackme.ui.viewmodel.WorkoutSessionViewModel;
 import com.intelmob.trackme.util.Utils;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import io.reactivex.Flowable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 
 public class WorkoutActivity extends AppCompatActivity
         implements View.OnClickListener, OnMapReadyCallback {
@@ -46,9 +55,9 @@ public class WorkoutActivity extends AppCompatActivity
     private static final int DEFAULT_LINE_WIDTH = 12;
     private static final int DEFAULT_BOUNDS_PADDING = 50;
 
-    private Button btnPause;
-    private Button btnResume;
-    private Button btnStop;
+    private ImageButton btnPause;
+    private ImageButton btnResume;
+    private ImageButton btnStop;
     private Group groupResumeStop;
 
     private TextView tvDistance;
@@ -60,8 +69,10 @@ public class WorkoutActivity extends AppCompatActivity
     private GoogleMap mMap;
 
     private int mWorkoutSessionId = -1;
-    private boolean isDropStartMarker;
-    private LatLng mLastPoint;
+    private boolean startMarkerAdded;
+    private List<LatLng> mTravelRoutes;
+
+    private WorkoutSessionViewModel mViewModel;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -87,9 +98,9 @@ public class WorkoutActivity extends AppCompatActivity
         btnResume.setOnClickListener(this);
         btnStop.setOnClickListener(this);
 
-        WorkoutSessionViewModel viewModel = ViewModelProviders.of(this)
+        mViewModel = ViewModelProviders.of(this)
                 .get(WorkoutSessionViewModel.class);
-        viewModel.getRecordingWorkoutSession().observe(this, session -> {
+        mViewModel.getRecordingWorkoutSession().observe(this, session -> {
             if (session == null) {
                 return;
             }
@@ -103,27 +114,36 @@ public class WorkoutActivity extends AppCompatActivity
             tvDuration.setText(Utils.formatDuration(session.duration));
 
             if (session.travelRoutes != null && session.travelRoutes.size() > 0) {
-                if (session.travelRoutes.size() > 1) {
-                    LatLng endPoint = session.travelRoutes.get(session.travelRoutes.size() - 1);
+                if (mTravelRoutes == null) {
+                    mTravelRoutes = new ArrayList<>();
+                    mTravelRoutes.addAll(session.travelRoutes);
+                }
 
-                    if (mLastPoint != null && mLastPoint.latitude == endPoint.latitude
-                            && mLastPoint.longitude == endPoint.longitude) {
-                        return;
+                if (!startMarkerAdded) {
+                    startMarkerAdded = true;
+
+                    LatLng firstPoint = mTravelRoutes.get(0);
+                    addMarker(firstPoint.latitude, firstPoint.longitude);
+                    moveCameraTo(firstPoint.latitude, firstPoint.longitude, DEFAULT_ZOOM_LEVEL,
+                            true, null);
+                }
+
+                if (mTravelRoutes.size() < session.travelRoutes.size()) {
+                    int fromIndex = mTravelRoutes.size();
+                    int toIndex = session.travelRoutes.size();
+
+                    mTravelRoutes.addAll(session.travelRoutes.subList(fromIndex, toIndex));
+
+                    for (int i = fromIndex; i < toIndex - 1; i++) {
+                        LatLng startPoint = mTravelRoutes.get(i);
+                        LatLng endPoint = mTravelRoutes.get(i + 1);
+                        drawRoute(startPoint.latitude, startPoint.longitude, endPoint.latitude,
+                                endPoint.longitude);
                     }
 
-                    mLastPoint = endPoint;
-                    LatLng startPoint = session.travelRoutes.get(session.travelRoutes.size() - 2);
-
-                    moveCameraToBounds(startPoint.latitude, startPoint.longitude,
-                            endPoint.latitude, endPoint.longitude);
-                    drawRoute(startPoint.latitude, startPoint.longitude, endPoint.latitude,
-                            endPoint.longitude);
-                } else if (!isDropStartMarker) {
-                    isDropStartMarker = true;
-
-                    LatLng firstPoint = session.travelRoutes.get(0);
-                    addMarker(firstPoint.latitude, firstPoint.longitude);
-                    moveCameraTo(firstPoint.latitude, firstPoint.longitude, DEFAULT_ZOOM_LEVEL);
+                    if (toIndex - fromIndex == 1) {
+                        moveCameraToBounds(mTravelRoutes.subList(fromIndex, toIndex), true, null);
+                    }
                 }
             }
         });
@@ -152,13 +172,55 @@ public class WorkoutActivity extends AppCompatActivity
                 toggleGroupResumeStop(false);
                 break;
             case R.id.workout_btnStop:
-                takeMapSnapshot();
+                Flowable.just(1)
+                        .subscribeOn(Schedulers.io())
+                        .map(integer -> mViewModel.getRecordingWorkoutSessionSync())
+                        .filter(workoutSession -> workoutSession != null
+                                && workoutSession.travelRoutes != null
+                                && workoutSession.travelRoutes.size() > 0)
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new SubscriberImpl<WorkoutSession>() {
+                            @Override
+                            public void onNext(WorkoutSession workoutSession) {
+                                if (workoutSession.travelRoutes.size() > 1) {
+                                    moveCameraToBounds(workoutSession.travelRoutes, false,
+                                            new GoogleMap.CancelableCallback() {
+                                                @Override
+                                                public void onFinish() {
+                                                    takeMapSnapshotAndStopRecording();
+                                                }
+
+                                                @Override
+                                                public void onCancel() {
+
+                                                }
+                                            });
+
+                                } else {
+                                    LatLng point = workoutSession.travelRoutes.get(0);
+                                    moveCameraTo(point.latitude, point.longitude,
+                                            DEFAULT_ZOOM_LEVEL, false,
+                                            new GoogleMap.CancelableCallback() {
+                                                @Override
+                                                public void onFinish() {
+                                                    takeMapSnapshotAndStopRecording();
+                                                }
+
+                                                @Override
+                                                public void onCancel() {
+
+                                                }
+                                            });
+                                }
+                            }
+                        });
                 break;
         }
     }
 
-    private void takeMapSnapshot() {
+    private void takeMapSnapshotAndStopRecording() {
         loadingView.setVisibility(View.VISIBLE);
+
         mMap.snapshot(bitmap -> {
             File sd = getFilesDir();
             File dest = new File(sd, String.valueOf(mWorkoutSessionId));
@@ -211,21 +273,41 @@ public class WorkoutActivity extends AppCompatActivity
         mMap.addMarker(new MarkerOptions().position(new LatLng(lat, lon)));
     }
 
-    private void moveCameraTo(double lat, double lon, int zoomLevel) {
-        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(
+    private void moveCameraTo(double lat, double lon, int zoomLevel, boolean animate,
+            GoogleMap.CancelableCallback cancelableCallback) {
+        CameraUpdate cameraUpdate = CameraUpdateFactory.newCameraPosition(
                 CameraPosition.builder()
                         .target(new LatLng(lat, lon))
                         .zoom(zoomLevel)
-                        .build()));
+                        .build());
+        if (animate) {
+            mMap.animateCamera(cameraUpdate, cancelableCallback);
+        } else {
+            mMap.moveCamera(cameraUpdate);
+            if (cancelableCallback != null) {
+                cancelableCallback.onFinish();
+            }
+        }
     }
 
-    private void moveCameraToBounds(double startLat, double startLon, double endLat,
-            double endLon) {
-        LatLngBounds bounds = new LatLngBounds.Builder()
-                .include(new LatLng(startLat, startLon))
-                .include(new LatLng(endLat, endLon))
-                .build();
-        mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, DEFAULT_BOUNDS_PADDING));
+    private void moveCameraToBounds(List<LatLng> latLngs, boolean animate,
+            GoogleMap.CancelableCallback cancelableCallback) {
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        for (LatLng latLng : latLngs) {
+            builder.include(latLng);
+        }
+        LatLngBounds bounds = builder.build();
+        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds,
+                DEFAULT_BOUNDS_PADDING);
+
+        if (animate) {
+            mMap.animateCamera(cameraUpdate, DEFAULT_ZOOM_LEVEL, cancelableCallback);
+        } else {
+            mMap.moveCamera(cameraUpdate);
+            if (cancelableCallback != null) {
+                cancelableCallback.onFinish();
+            }
+        }
     }
 
     private void drawRoute(double startLat, double startLon, double endLat, double endLon) {
