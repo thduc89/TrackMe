@@ -20,9 +20,10 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.gson.Gson;
 import com.intelmob.trackme.db.AppDatabase;
-import com.intelmob.trackme.db.TravelPoint;
-import com.intelmob.trackme.db.WorkoutSession;
+import com.intelmob.trackme.db.model.TravelPoint;
+import com.intelmob.trackme.db.model.WorkoutSession;
 import com.intelmob.trackme.ui.view.WorkoutActivity;
 
 import java.util.ArrayList;
@@ -35,11 +36,19 @@ import io.reactivex.schedulers.Schedulers;
 
 public class WorkoutService extends LifecycleService {
 
+    private static final int HOUR_IN_MILLIS = 60 * 60 * 1000;
+
     private static final String ACTION_START_NEW_RECORDING = "action_start_new_recording";
     private static final String ACTION_PAUSE_RECORDING = "action_pause_recording";
     private static final String ACTION_RESUME_RECORDING = "action_resume_recording";
     private static final String ACTION_STOP_RECORDING = "action_stop_recording";
     private static final String EXTRA_SAVE_PROGRESS = "extra_save_progress";
+
+    /**
+     * Testing purpose only
+     */
+    private static final String ACTION_ADD_LOCATION = "action_add_location";
+    private static final String EXTRA_LOCATION = "extra_location";
 
     public static void startNewRecording(Context context) {
         Intent intent = new Intent(context, WorkoutService.class);
@@ -66,6 +75,13 @@ public class WorkoutService extends LifecycleService {
         context.startService(intent);
     }
 
+    public static void addLocation(Context context, Location location) {
+        Intent intent = new Intent(context, WorkoutService.class);
+        intent.setAction(ACTION_ADD_LOCATION);
+        intent.putExtra(EXTRA_LOCATION, new Gson().toJson(location));
+        context.startService(intent);
+    }
+
     private AppDatabase appDatabase;
 
     private FusedLocationProviderClient mLocationProviderClient;
@@ -80,37 +96,7 @@ public class WorkoutService extends LifecycleService {
             }
 
             Location location = locationResult.getLocations().get(0);
-            double currentLat = location.getLatitude();
-            double currentLon = location.getLongitude();
-            float speed = location.getSpeed();
-            float speedKPH = speed / 1000 * 3600;
-
-            getRecordingWorkoutSession()
-                    .map(workoutSession -> {
-                        if (workoutSession.travelPoints == null) {
-                            workoutSession.travelPoints = new ArrayList<>();
-                        }
-
-                        workoutSession.travelPoints
-                                .add(new TravelPoint(new LatLng(currentLat, currentLon), speedKPH));
-                        int points = workoutSession.travelPoints.size();
-
-                        workoutSession.speedKPH = speedKPH;
-                        if (points > 1) {
-                            TravelPoint lastPoint = workoutSession.travelPoints.get(points - 2);
-                            float[] results = new float[3];
-                            Location.distanceBetween(currentLat, currentLon,
-                                    lastPoint.latLng.latitude, lastPoint.latLng.longitude,
-                                    results);
-                            float distance = results[0];
-                            float distanceKM = distance / 1000;
-                            workoutSession.distance += distanceKM;
-                        }
-
-                        appDatabase.workoutModel().updateWorkoutSession(workoutSession);
-
-                        return true;
-                    }).subscribe(new SubscriberImpl<>());
+            addNewTravelPointFromLocation(location);
         }
     };
 
@@ -158,10 +144,55 @@ public class WorkoutService extends LifecycleService {
                     boolean saveProgress = intent.getBooleanExtra(EXTRA_SAVE_PROGRESS, false);
                     internalStopRecording(saveProgress);
                     break;
+                case ACTION_ADD_LOCATION:
+                    if (BuildConfig.DEBUG) {
+                        Location location = new Gson().fromJson(
+                                intent.getStringExtra(EXTRA_LOCATION), Location.class);
+                        addNewTravelPointFromLocation(location);
+                    }
+                    break;
             }
         }
 
         return START_STICKY;
+    }
+
+    private void addNewTravelPointFromLocation(Location location) {
+        double currentLat = location.getLatitude();
+        double currentLon = location.getLongitude();
+        long timestamp = location.getTime();
+
+        getRecordingWorkoutSession()
+                .map(workoutSession -> {
+                    if (workoutSession.travelPoints == null) {
+                        workoutSession.travelPoints = new ArrayList<>();
+                    }
+
+                    TravelPoint newPoint = new TravelPoint(new LatLng(currentLat, currentLon),
+                            timestamp, 0);
+
+                    int size = workoutSession.travelPoints.size();
+                    if (size > 0) {
+                        TravelPoint lastPoint = workoutSession.travelPoints.get(size - 1);
+                        float[] results = new float[3];
+                        Location.distanceBetween(currentLat, currentLon,
+                                lastPoint.latLng.latitude, lastPoint.latLng.longitude,
+                                results);
+                        float distance = results[0];
+                        float distanceKM = distance / 1000;
+                        workoutSession.distance += distanceKM;
+
+                        long deltaTimeInMillis = newPoint.timestamp - lastPoint.timestamp;
+                        float deltaTimeInHour = (float) deltaTimeInMillis / HOUR_IN_MILLIS;
+
+                        newPoint.speedKPH = distanceKM / deltaTimeInHour;
+                    }
+
+                    workoutSession.travelPoints.add(newPoint);
+                    appDatabase.workoutModel().updateWorkoutSession(workoutSession);
+
+                    return true;
+                }).subscribe(new SubscriberImpl<>());
     }
 
     private void internalStartNewRecording() {

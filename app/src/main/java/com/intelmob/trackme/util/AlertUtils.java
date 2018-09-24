@@ -1,5 +1,5 @@
 
-package com.intelmob.trackme.ui;
+package com.intelmob.trackme.util;
 
 import android.app.Dialog;
 import android.content.Context;

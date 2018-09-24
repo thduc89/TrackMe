@@ -5,7 +5,7 @@ import android.arch.lifecycle.AndroidViewModel;
 import android.arch.lifecycle.LiveData;
 
 import com.intelmob.trackme.db.AppDatabase;
-import com.intelmob.trackme.db.WorkoutSession;
+import com.intelmob.trackme.db.model.WorkoutSession;
 
 import java.util.List;
 

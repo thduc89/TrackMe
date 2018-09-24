@@ -12,7 +12,7 @@ import android.view.ViewGroup;
 import com.intelmob.trackme.GlideApp;
 import com.intelmob.trackme.R;
 import com.intelmob.trackme.adapter.viewholder.ItemWorkoutSessionVH;
-import com.intelmob.trackme.db.WorkoutSession;
+import com.intelmob.trackme.db.model.WorkoutSession;
 import com.intelmob.trackme.util.Utils;
 
 import java.util.ArrayList;

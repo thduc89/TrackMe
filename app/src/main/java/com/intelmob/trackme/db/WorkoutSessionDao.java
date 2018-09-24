@@ -8,6 +8,8 @@ import android.arch.persistence.room.OnConflictStrategy;
 import android.arch.persistence.room.Query;
 import android.arch.persistence.room.Update;
 
+import com.intelmob.trackme.db.model.WorkoutSession;
+
 import java.util.List;
 
 @Dao

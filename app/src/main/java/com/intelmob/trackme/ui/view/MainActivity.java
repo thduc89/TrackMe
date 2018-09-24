@@ -14,7 +14,7 @@ import com.intelmob.trackme.R;
 import com.intelmob.trackme.SubscriberImpl;
 import com.intelmob.trackme.adapter.WorkoutSessionAdapter;
 import com.intelmob.trackme.db.AppDatabase;
-import com.intelmob.trackme.db.WorkoutSession;
+import com.intelmob.trackme.db.model.WorkoutSession;
 import com.intelmob.trackme.ui.viewmodel.WorkoutSessionListViewModel;
 
 import io.reactivex.Flowable;

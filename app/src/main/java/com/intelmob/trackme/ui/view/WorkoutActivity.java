@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -34,13 +35,14 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.maps.model.RoundCap;
+import com.intelmob.trackme.BuildConfig;
 import com.intelmob.trackme.R;
 import com.intelmob.trackme.SubscriberImpl;
 import com.intelmob.trackme.WorkoutService;
-import com.intelmob.trackme.db.TravelPoint;
-import com.intelmob.trackme.db.WorkoutSession;
-import com.intelmob.trackme.ui.AlertUtils;
+import com.intelmob.trackme.db.model.TravelPoint;
+import com.intelmob.trackme.db.model.WorkoutSession;
 import com.intelmob.trackme.ui.viewmodel.WorkoutSessionViewModel;
+import com.intelmob.trackme.util.AlertUtils;
 import com.intelmob.trackme.util.Utils;
 
 import java.io.File;
@@ -116,11 +118,6 @@ public class WorkoutActivity extends AppCompatActivity
 
             mWorkoutSessionId = session.id;
 
-            tvDistance.setText(String.format(
-                    getString(R.string.format_distance), session.distance));
-            tvSpeed.setText(String.format(getString(R.string.format_speed), session.speedKPH));
-            tvDuration.setText(Utils.formatDuration(session.duration));
-
             if (session.travelPoints == null || session.travelPoints.size() == 0) {
                 return;
             }
@@ -151,6 +148,13 @@ public class WorkoutActivity extends AppCompatActivity
                     moveCameraToBounds(newPoints, true, null);
                 }
             }
+
+            TravelPoint lastPoint = mTravelPoints.get(mTravelPoints.size() - 1);
+
+            tvDistance.setText(String.format(
+                    getString(R.string.format_distance), session.distance));
+            tvSpeed.setText(String.format(getString(R.string.format_speed), lastPoint.speedKPH));
+            tvDuration.setText(Utils.formatDuration(session.duration));
         });
     }
 
@@ -266,6 +270,17 @@ public class WorkoutActivity extends AppCompatActivity
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        if (BuildConfig.DEBUG) {
+            mMap.setOnMapLongClickListener(latLng -> {
+                Location location = new Location("user");
+                location.setLatitude(latLng.latitude);
+                location.setLongitude(latLng.longitude);
+                location.setTime(System.currentTimeMillis());
+
+                WorkoutService.addLocation(this, location);
+            });
+        }
+
         if (isLocationPermissionGranted()) {
             onMapReadyAndLocationPermissionGranted();
         }
@@ -304,7 +319,7 @@ public class WorkoutActivity extends AppCompatActivity
     }
 
     private void moveCameraToBounds(List<TravelPoint> travelPoints, boolean animate,
-            GoogleMap.CancelableCallback cancelableCallback) {
+                                    GoogleMap.CancelableCallback cancelableCallback) {
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
         for (TravelPoint point : travelPoints) {
             builder.include(point.latLng);
@@ -350,7 +365,7 @@ public class WorkoutActivity extends AppCompatActivity
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-            @NonNull int[] grantResults) {
+                                           @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == LOCATION_RC) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -372,7 +387,7 @@ public class WorkoutActivity extends AppCompatActivity
 
     private void askForLocationPermission() {
         ActivityCompat.requestPermissions(this,
-                new String[] {
+                new String[]{
                         Manifest.permission.ACCESS_FINE_LOCATION
                 },
                 LOCATION_RC);

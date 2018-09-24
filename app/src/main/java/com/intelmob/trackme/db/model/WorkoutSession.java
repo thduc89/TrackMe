@@ -1,9 +1,11 @@
 
-package com.intelmob.trackme.db;
+package com.intelmob.trackme.db.model;
 
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.PrimaryKey;
 import android.arch.persistence.room.TypeConverters;
+
+import com.intelmob.trackme.db.LocationConverter;
 
 import java.util.List;
 
@@ -23,5 +25,4 @@ public class WorkoutSession {
 
     /** Current workout session or not */
     public boolean isRecording = false;
-    public float speedKPH;
 }
