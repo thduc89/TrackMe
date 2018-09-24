@@ -22,6 +22,7 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.Gson;
 import com.intelmob.trackme.db.AppDatabase;
+import com.intelmob.trackme.db.RecordingState;
 import com.intelmob.trackme.db.model.TravelPoint;
 import com.intelmob.trackme.db.model.WorkoutSession;
 import com.intelmob.trackme.ui.view.WorkoutActivity;
@@ -198,7 +199,7 @@ public class WorkoutService extends LifecycleService {
     private void internalStartNewRecording() {
         getRecordingWorkoutSession()
                 .map(recordingSession -> {
-                    recordingSession.isRecording = true;
+                    recordingSession.recordingState = RecordingState.RECORDING;
                     recordingSession.distance = 0;
                     recordingSession.avgSpeed = 0;
                     recordingSession.duration = 0;
@@ -217,15 +218,41 @@ public class WorkoutService extends LifecycleService {
     }
 
     private void internalPauseRecording() {
-        stopLocationUpdates();
-        stopDurationCounter();
-        stopForeground(true);
+        getRecordingWorkoutSession()
+                .map(recordingSession -> {
+                    recordingSession.recordingState = RecordingState.PAUSED;
+                    appDatabase.workoutModel().updateWorkoutSession(recordingSession);
+
+                    return true;
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new SubscriberImpl<Boolean>() {
+                    @Override
+                    public void onNext(Boolean success) {
+                        stopLocationUpdates();
+                        stopDurationCounter();
+                        stopForeground(true);
+                    }
+                });
     }
 
     private void internalResumeRecording() {
-        startLocationUpdates();
-        startDurationCounter();
-        showNotification();
+        getRecordingWorkoutSession()
+                .map(recordingSession -> {
+                    recordingSession.recordingState = RecordingState.RECORDING;
+                    appDatabase.workoutModel().updateWorkoutSession(recordingSession);
+
+                    return true;
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new SubscriberImpl<Boolean>() {
+                    @Override
+                    public void onNext(Boolean success) {
+                        startLocationUpdates();
+                        startDurationCounter();
+                        showNotification();
+                    }
+                });
     }
 
     private void internalStopRecording(boolean saveProgress) {
@@ -234,7 +261,7 @@ public class WorkoutService extends LifecycleService {
         getRecordingWorkoutSession()
                 .map(recordingSession -> {
                     if (saveProgress) {
-                        recordingSession.isRecording = false;
+                        recordingSession.recordingState = RecordingState.NONE;
                         if (recordingSession.travelPoints != null
                                 && recordingSession.travelPoints.size() > 0) {
 
@@ -276,7 +303,7 @@ public class WorkoutService extends LifecycleService {
                     if (recordingSession == null) {
                         recordingSession = new WorkoutSession();
                         recordingSession.dateCreated = System.currentTimeMillis();
-                        recordingSession.isRecording = true;
+                        recordingSession.recordingState = RecordingState.RECORDING;
                         appDatabase.workoutModel().addWorkoutSession(recordingSession);
 
                         recordingSession = appDatabase.workoutModel()

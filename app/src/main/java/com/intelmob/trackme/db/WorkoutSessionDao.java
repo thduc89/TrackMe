@@ -1,3 +1,4 @@
+
 package com.intelmob.trackme.db;
 
 import android.arch.lifecycle.LiveData;
@@ -15,13 +16,13 @@ import java.util.List;
 @Dao
 public interface WorkoutSessionDao {
 
-    @Query("SELECT * FROM WorkoutSession WHERE isRecording = 0 ORDER BY dateCreated DESC")
+    @Query("SELECT * FROM WorkoutSession WHERE recordingState = 0 ORDER BY dateCreated DESC")
     LiveData<List<WorkoutSession>> getAllWorkoutSessions();
 
-    @Query("SELECT * FROM WorkoutSession WHERE isRecording = 1 LIMIT 1")
+    @Query("SELECT * FROM WorkoutSession WHERE recordingState > 0 LIMIT 1")
     LiveData<WorkoutSession> getRecordingWorkoutSession();
 
-    @Query("SELECT * FROM WorkoutSession WHERE isRecording = 1 LIMIT 1")
+    @Query("SELECT * FROM WorkoutSession WHERE recordingState > 0 LIMIT 1")
     WorkoutSession getRecordingWorkoutSessionSync();
 
     @Update

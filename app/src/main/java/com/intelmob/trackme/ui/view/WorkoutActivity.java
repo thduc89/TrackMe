@@ -39,6 +39,7 @@ import com.intelmob.trackme.BuildConfig;
 import com.intelmob.trackme.R;
 import com.intelmob.trackme.SubscriberImpl;
 import com.intelmob.trackme.WorkoutService;
+import com.intelmob.trackme.db.RecordingState;
 import com.intelmob.trackme.db.model.TravelPoint;
 import com.intelmob.trackme.db.model.WorkoutSession;
 import com.intelmob.trackme.ui.viewmodel.WorkoutSessionViewModel;
@@ -117,6 +118,7 @@ public class WorkoutActivity extends AppCompatActivity
             }
 
             mWorkoutSessionId = session.id;
+            toggleGroupResumeStop(session.recordingState == RecordingState.PAUSED);
 
             if (session.travelPoints == null || session.travelPoints.size() == 0) {
                 return;
@@ -300,16 +302,22 @@ public class WorkoutActivity extends AppCompatActivity
                 .subscribeOn(Schedulers.io())
                 .map(integer -> {
                     WorkoutSession workoutSession = mViewModel.getRecordingWorkoutSessionSync();
-                    return workoutSession != null;
+                    return workoutSession.recordingState;
                 })
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new SubscriberImpl<Boolean>() {
+                .subscribe(new SubscriberImpl<RecordingState>() {
                     @Override
-                    public void onNext(Boolean isRecording) {
-                        if (!isRecording) {
-                            WorkoutService.startNewRecording(WorkoutActivity.this);
+                    public void onNext(RecordingState recordingState) {
+                        switch (recordingState) {
+                            case NONE:
+                                WorkoutService.startNewRecording(WorkoutActivity.this);
+                                break;
+                            case RECORDING:
+                                WorkoutService.resumeRecording(WorkoutActivity.this);
+                                break;
+                            case PAUSED:
+                                break;
                         }
-                        WorkoutService.resumeRecording(WorkoutActivity.this);
                     }
                 });
     }
@@ -319,7 +327,7 @@ public class WorkoutActivity extends AppCompatActivity
     }
 
     private void moveCameraToBounds(List<TravelPoint> travelPoints, boolean animate,
-                                    GoogleMap.CancelableCallback cancelableCallback) {
+            GoogleMap.CancelableCallback cancelableCallback) {
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
         for (TravelPoint point : travelPoints) {
             builder.include(point.latLng);
@@ -365,7 +373,7 @@ public class WorkoutActivity extends AppCompatActivity
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
+            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == LOCATION_RC) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -387,8 +395,8 @@ public class WorkoutActivity extends AppCompatActivity
 
     private void askForLocationPermission() {
         ActivityCompat.requestPermissions(this,
-                new String[]{
-                        Manifest.permission.ACCESS_FINE_LOCATION
+                new String[] {
+                    Manifest.permission.ACCESS_FINE_LOCATION
                 },
                 LOCATION_RC);
     }

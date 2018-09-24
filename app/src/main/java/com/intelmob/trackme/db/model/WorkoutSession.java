@@ -6,11 +6,15 @@ import android.arch.persistence.room.PrimaryKey;
 import android.arch.persistence.room.TypeConverters;
 
 import com.intelmob.trackme.db.LocationConverter;
+import com.intelmob.trackme.db.RecordingState;
+import com.intelmob.trackme.db.RecordingStateConverter;
 
 import java.util.List;
 
 @Entity
-@TypeConverters(LocationConverter.class)
+@TypeConverters({
+        LocationConverter.class, RecordingStateConverter.class
+})
 public class WorkoutSession {
 
     @PrimaryKey(autoGenerate = true)
@@ -24,5 +28,5 @@ public class WorkoutSession {
     public List<TravelPoint> travelPoints;
 
     /** Current workout session or not */
-    public boolean isRecording = false;
+    public RecordingState recordingState = RecordingState.NONE;
 }
